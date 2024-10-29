@@ -1,21 +1,24 @@
 #include <Arduino.h>
-#include "encoders.hpp"
 #include <esp_now.h>
 #include <WiFi.h>
 #include "MotorControl.hpp"
 #include <Wire.h>
 #include "TWIfunctions.hpp"
-#include "FrequencyCounter.hpp"
+
 
 
 
 
 MotorControl motor;
 
-//FrequencyCounter encoderStarboard(0); // Instance for the starboard encoder
-//FrequencyCounter encoderPort(1);      // Instance for the port encoder
+
 
 void wheelCounttoByte(uint8_t * byteWheelCount,  int32_t wheelEncoderCount);
+void onStarbPulse() ;
+void  onPortPulse() ;
+void  calculateStarbFrequency() ;
+void  calculatePortFrequency() ;
+
 
 
 
@@ -30,6 +33,7 @@ uint8_t PortPwr;
 #define EncdPortA 32   //Green
 volatile int starbCount = 0;
 volatile int portCount = 0;
+volatile int starbInterrupt ;
 int starbFreq = 0 ;
 int portFreq = 0 ;
 hw_timer_t *starbTimer = NULL;
@@ -50,10 +54,10 @@ void setup(){
 /***********Encoder setup******* */
   pinMode(EncdStarbA, INPUT_PULLUP);
   pinMode(EncdPortA, INPUT_PULLUP);
-  attachInterrupt(digitalPinToInterrupt(EncdStarbA), onStarbPulse, FALLING);
-  attachInterrupt(digitalPinToInterrupt(EncdPortA), onPortPulse, FALLING);
+  attachInterrupt(digitalPinToInterrupt(EncdStarbA), onStarbPulse, RISING);
+  attachInterrupt(digitalPinToInterrupt(EncdPortA), onPortPulse, RISING);
   starbTimer = timerBegin(0, 80, true);
-  portTimer = timerBegin(0, 80, true);
+  portTimer = timerBegin(1, 80, true);
   timerAttachInterrupt(starbTimer, &calculateStarbFrequency, true); 
   timerAttachInterrupt(portTimer, &calculatePortFrequency, true); 
   timerAlarmWrite(starbTimer, intervalStarbMs * 1000, true);       
@@ -72,12 +76,12 @@ motor.MotorSetup();
 
 /************initial values for motor*********** */
 StarbDir = HIGH; // High is forward  ++ count
-StarbPwr = 200;
+StarbPwr = 120;
 ledcWrite(STBDCHANNEL, StarbPwr);
 digitalWrite(STBDIODIR, StarbDir) ;
 
 PortDir = LOW; // LOW is forward  
-PortPwr = 200;
+PortPwr = 120;
 ledcWrite(PORTCHANNEL, PortPwr);
 digitalWrite(PORTIODIR, PortDir) ;
 }
@@ -85,14 +89,14 @@ digitalWrite(PORTIODIR, PortDir) ;
 
 
 void loop(){
-    // Print frequency every second
-    Serial.print("starbFrequency: ");
+            
+    Serial.print("   starbFrequency: ");
     Serial.print(starbFreq);
-    Serial.print("    portFrequency: ");
+    Serial.print("    portFrequency:  ");
     Serial.print(portFreq);
     Serial.println(" Hz");
 
-    delay(1000); // Adjust as needed for your display frequency
+    delay(500); // Adjust as needed for your display frequency
 
 
  
@@ -119,11 +123,13 @@ void IRAM_ATTR onPortPulse() {
     portCount++;
 }
 void IRAM_ATTR calculateStarbFrequency() {
+  //Serial.println("Starboard Timer Triggered");
     starbFreq = starbCount * (1000 / intervalStarbMs); // pulses per second (Hz)
     starbCount = 0; // Reset count for the next interval
 }
 
 void IRAM_ATTR calculatePortFrequency() {
+ // Serial.println("Port Timer Triggered");
     portFreq = portCount * (1000 / intervalPortMs); // pulses per second (Hz)
     portCount = 0; // Reset count for the next interval
 }
