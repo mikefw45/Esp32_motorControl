@@ -38,6 +38,7 @@ class MotorControl{
     void setMotorVelocity(uint8_t motor , int16_t speed ) ;
 
     void Joystickvals(int x, int z) ;
+    void motorRheostat(uint8_t *rx_data) ;
   
 };
 

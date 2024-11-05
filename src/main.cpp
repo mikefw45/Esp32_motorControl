@@ -4,6 +4,7 @@
 #include "MotorControl.hpp"
 #include <Wire.h>
 #include "TWIfunctions.hpp"
+#include <iostream>
 
 
 
@@ -13,11 +14,18 @@ MotorControl motor;
 
 
 
-void wheelCounttoByte(uint8_t * byteWheelCount,  int32_t wheelEncoderCount);
+void wheelFreqtoByte(uint8_t * byteWheelFreq,  int wheelFreq) ;
 void onStarbPulse() ;
 void  onPortPulse() ;
 void  calculateStarbFrequency() ;
 void  calculatePortFrequency() ;
+void motorRheostat(uint8_t *rx_data);
+
+/***********TWI pins********** */
+#define SDA_PIN 21
+#define SCL_PIN 22
+#define I2C_ADDRESS 0X49 
+
 
 
 
@@ -42,14 +50,18 @@ const int intervalStarbMs = 1000;
 const int intervalPortMs = 1000;
 
 /*******data received from RPI****** */
-//uint8_t receivedBytes[8] ;
-
-
+//uint8_t twiFunctions::rx_data[4]
+//rx_data[0]  0x08  = LOW  ,  0x0F = HIGH StarbDir
+//rx_data[1]  0x00 - 0xFF  StarbPwr
+//rx_data[2]  0x08  = LOW  ,  0x0F = HIGH PortDir
+//rx_data[3]  0x00 - 0xFF  PortPwr
  
 
 
 void setup(){
   Serial.begin(115200);
+ Wire.begin(I2C_ADDRESS) ;
+
 
 /***********Encoder setup******* */
   pinMode(EncdStarbA, INPUT_PULLUP);
@@ -66,9 +78,9 @@ void setup(){
   timerAlarmEnable(portTimer);    
   
   /************TWIfunctions setup********** */
-  twiFunctions::begin ;
-  twiFunctions::DataRequest;
-  twiFunctions::DataReceived;
+ // twiFunctions::begin ;
+  Wire.onRequest(twiFunctions::DataRequest); 
+  Wire.onReceive(twiFunctions::DataReceived);
 
 /************Motor controller***********/
 motor.MotorSetup();
@@ -89,12 +101,28 @@ digitalWrite(PORTIODIR, PortDir) ;
 
 
 void loop(){
-            
+
+    motorRheostat(twiFunctions::rx_data) ;
+
+
+    std::cerr << std::hex << static_cast<int>(starbFreq) << " Starboard frequency hz"<< std::endl;
+    std::cerr << std::hex << static_cast<int>(portFreq) << " Port frequency hz"<< std::endl;     
+    /*   
     Serial.print("   starbFrequency: ");
     Serial.print(starbFreq);
     Serial.print("    portFrequency:  ");
     Serial.print(portFreq);
     Serial.println(" Hz");
+    */
+    uint8_t BstarbFreq[4] ;
+    uint8_t BportFreq[4] ;
+
+    wheelFreqtoByte(BstarbFreq , starbFreq) ; 
+    memcpy(twiFunctions::tx_data, BstarbFreq, 4);
+    wheelFreqtoByte(BportFreq , portFreq) ;
+    memcpy(twiFunctions::tx_data + 4, BportFreq, 4);
+
+
 
     delay(500); // Adjust as needed for your display frequency
 
@@ -105,11 +133,11 @@ void loop(){
 
 
 
-void wheelCounttoByte(uint8_t * byteWheelCount,  int32_t wheelEncoderCount){
-    byteWheelCount[0] = wheelEncoderCount & 0xFF;
-    byteWheelCount[1] = (wheelEncoderCount >> 8) & 0xFF;
-    byteWheelCount[2] = (wheelEncoderCount >> 16) & 0xFF;
-    byteWheelCount[3] = (wheelEncoderCount >> 24) & 0xFF;
+void wheelFreqtoByte(uint8_t * byteWheelFreq,  int wheelFreq){
+    byteWheelFreq[0] = wheelFreq & 0xFF;
+    byteWheelFreq[1] = (wheelFreq >> 8) & 0xFF;
+    byteWheelFreq[2] = (wheelFreq >> 16) & 0xFF;
+    byteWheelFreq[3] = (wheelFreq >> 24) & 0xFF;
 }
 
 

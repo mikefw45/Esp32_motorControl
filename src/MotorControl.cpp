@@ -1,4 +1,6 @@
 #include "MotorControl.hpp"
+#include <iostream>
+#include "twiFunctions.hpp"
 
 /******No changes have been made to Starboard vs Port in these functions */
 
@@ -9,6 +11,38 @@ void MotorControl::MotorSetup() {
         ledcAttachPin(PORTIOPWM, PORTCHANNEL ) ;
         pinMode(STBDIODIR, OUTPUT);
         pinMode(PORTIODIR, OUTPUT) ;
+}
+
+void motorRheostat(uint8_t *rx_data){ 
+    //strbd motor = 0x0 , port motor = 0x02
+    // direction  0x08 =HIGH, 0x0F = LOW
+    // strbd forwards 0x08 port forwards 0x0F
+    //power 0x00 to 0xFF
+   
+
+    if (rx_data[0] == 0x08) {
+      digitalWrite(STBDIODIR, HIGH) ;   // High is forward   
+       std::cerr << "Starboard motor set HIGH   " << std::endl;
+    } else if (rx_data[0] == 0x0F) {
+      digitalWrite(STBDIODIR, LOW)  ;
+      std::cerr << "Starboard motor set LOW   " << std::endl;
+    } else 
+    std::cerr << "No direction set for Starboard motor    " << std::endl;
+      
+    ledcWrite(STBDCHANNEL, rx_data[1]); // 0xC8 is 200
+       std::cerr << std::hex << static_cast<int>(twiFunctions::instance->rx_data[1]) << " Starboard power" << std::endl;
+         
+
+    if (rx_data[2] == 0x08) {
+      digitalWrite(PORTIODIR, HIGH) ;  
+      std::cerr << "Port motor set HIGH   " << std::endl;      
+    } else if (rx_data[2] == 0x0F) {
+      digitalWrite(PORTIODIR, LOW)  ;  // LOW is forward 
+      std::cerr << "Port motor set LOW  " << std::endl; 
+    } else 
+      std::cerr << " No direction set for Port motor " << std::endl; 
+      ledcWrite(PORTCHANNEL, rx_data[3]);
+       std::cerr << std::hex << static_cast<int>(twiFunctions::instance->rx_data[3]) << " Port power" << std::endl;
 }
 
 void MotorControl::setMotorVelocity(uint8_t motor , int16_t speed ){

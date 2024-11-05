@@ -1,4 +1,5 @@
 #include "twiFunctions.hpp"
+#include <iostream>
 
 twiFunctions* twiFunctions::instance = nullptr;
 
@@ -9,20 +10,26 @@ twiFunctions::twiFunctions() {
     instance = this; // Set the singleton instance pointer to this object
 }
 
-void twiFunctions::begin() {
-    Wire.begin(); // Start I2C communication
-    Wire.onRequest(DataRequest); // Register request callback
-    Wire.onReceive(DataReceived); // Register receive callback
-}
 
 void twiFunctions::DataRequest() {
     Wire.write(instance->tx_data, sizeof(instance->tx_data)); // Send tx_data
 }
 
-// I2C receive callback function
+
 void twiFunctions::DataReceived(int byteCount) {
+  
+    const int expectedByteCount = 4;
+    memset(instance->rx_data, 0, sizeof(instance->rx_data));
+    
     int index = 0;
-    while (Wire.available() && index < sizeof(rx_data)) {
-        instance->rx_data[index++] = Wire.read(); // Read received data
+    while (Wire.available() && index <  expectedByteCount) {
+        instance->rx_data[index++] = Wire.read(); 
     }
+
+    std::cerr << "Data received successfully. rx_data: " ;
+    for (int i = 0; i < expectedByteCount; i++) {
+        std::cerr << std::hex << static_cast<int>(instance->rx_data[i]) << " ";
+    }
+    
+    std::cerr << std::endl;
 }
