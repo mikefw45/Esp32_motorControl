@@ -15,132 +15,33 @@ void MotorControl::MotorSetup() {
 
 void motorRheostat(uint8_t *rx_data){ 
     //strbd motor = 0x0 , port motor = 0x02
-    // direction  0x08 =HIGH, 0x0F = LOW
-    // strbd forwards 0x08 port forwards 0x0F
+    // direction Forward 0x08 =HIGH, Reverse 0x0F 
+    // starboard forwards set pin HIGH port forwards set pin LOW
     //power 0x00 to 0xFF
    
 
     if (rx_data[0] == 0x08) {
       digitalWrite(STBDIODIR, HIGH) ;   // High is forward   
-       std::cerr << "Starboard motor set HIGH   " << std::endl;
+      ledcWrite(STBDCHANNEL, rx_data[1]);
+      Serial.printf("Starboard PWM: %d   Direction: %s \n", rx_data[1], "Forward");
     } else if (rx_data[0] == 0x0F) {
       digitalWrite(STBDIODIR, LOW)  ;
-      std::cerr << "Starboard motor set LOW   " << std::endl;
+      ledcWrite(STBDCHANNEL, rx_data[1]);
+      Serial.printf("Starboard PWM: %d   Direction: %s \n", rx_data[1], "Reverse");
     } else 
-    std::cerr << "No direction set for Starboard motor    " << std::endl;
+      Serial.printf("Starboard PWM: %d   Direction: %s \n", rx_data[1], "Direction undefined");
       
-    ledcWrite(STBDCHANNEL, rx_data[1]); // 0xC8 is 200
-       std::cerr << std::hex << static_cast<int>(twiFunctions::instance->rx_data[1]) << " Starboard power" << std::endl;
-         
 
     if (rx_data[2] == 0x08) {
-      digitalWrite(PORTIODIR, HIGH) ;  
-      std::cerr << "Port motor set HIGH   " << std::endl;      
-    } else if (rx_data[2] == 0x0F) {
-      digitalWrite(PORTIODIR, LOW)  ;  // LOW is forward 
-      std::cerr << "Port motor set LOW  " << std::endl; 
-    } else 
-      std::cerr << " No direction set for Port motor " << std::endl; 
+      digitalWrite(PORTIODIR, LOW) ;  
       ledcWrite(PORTCHANNEL, rx_data[3]);
-       std::cerr << std::hex << static_cast<int>(twiFunctions::instance->rx_data[3]) << " Port power" << std::endl;
+      Serial.printf("Port PWM: %d   Direction: %s \n", rx_data[3], "Forward");   
+    } else if (rx_data[2] == 0x0F) {
+      digitalWrite(PORTIODIR, HIGH)  ;  // LOW is forward 
+      ledcWrite(PORTCHANNEL, rx_data[3]);
+      Serial.printf("Port PWM: %d   Direction: %s \n", rx_data[3], "Reverse");  
+    } else 
+      Serial.printf("Portt  PWM: %d   Direction: %s \n", rx_data[1], "Direction undefined");
+
 }
 
-void MotorControl::setMotorVelocity(uint8_t motor , int16_t speed ){
-        if (motor == STBDIODIR) {
-            if (speed > 2500) {
-                digitalWrite(STBDIODIR, HIGH) ;
-                ledcWrite(STBDCHANNEL, 250);}  // STBD high is forward
-            if (speed < 1000) {    
-              digitalWrite(STBDIODIR, LOW); 
-              ledcWrite(STBDCHANNEL, 250); }   
-            else  {
-                 ledcWrite(STBDCHANNEL, 0);
-            } 
-            //speed = abs(speed) ;
-            //uint8_t dutyCycle = constrain(speed, 150, 255);  
-            
-        }
-        if (motor == PORTMTR) {
-            if (speed > 2500) {
-                digitalWrite(PORTIODIR, LOW) ; // PORT high is reverse
-                ledcWrite(PORTCHANNEL, 250);}  
-            if (speed < 1000) {
-                digitalWrite(PORTIODIR, LOW) ; // PORT high is reverse
-                ledcWrite(PORTCHANNEL, 250);}     
-            else {
-                ledcWrite(PORTCHANNEL, 0);   }   
-           // speed = abs(speed) ;
-           // uint8_t dutyCycle = constrain(speed, 150, 255);  
-            
-        }  
-}
-
-
-void MotorControl::Joystickvals(int x, int z) {
-        if ( x > 2500) {
-            StarbDir = HIGH ; 
-            StarbPwr = 250 ;
-            PortDir = LOW ;
-            PortPwr = 250 ;
-        }        
-       
-        if ( x < 1000) {
-            StarbDir = LOW ; 
-            StarbPwr = 250 ;
-            PortDir = HIGH ;
-            PortPwr = 250 ;
-        }
-
-        if ( z < 1000) {
-            StarbDir = HIGH ; 
-            StarbPwr = 250 ;
-            PortDir = HIGH ;
-            PortPwr = 250 ;
-        }
-
-        if ( z > 2500) {
-            StarbDir = LOW ; 
-            StarbPwr = 250 ;
-            PortDir = LOW ;
-            PortPwr = 250 ; 
-        }
-
-       if (z >= 1000 && z <= 2500 && x >= 1000 && x <= 2500){
-        StarbPwr = 0 ;
-        PortPwr = 0 ;
-        }
-}
- 
-
-/*
-    if ( myData.x > 2500) {
-      digitalWrite(STBDIODIR, HIGH) ;
-      digitalWrite(PORTIODIR, LOW) ;
-      ledcWrite(STBDCHANNEL, 250);
-      ledcWrite(PORTCHANNEL, 250);
-  }
-   if ( myData.x < 1000) {
-      digitalWrite(STBDIODIR, LOW) ;
-      digitalWrite(PORTIODIR, HIGH) ;
-      ledcWrite(STBDCHANNEL, 250);
-      ledcWrite(PORTCHANNEL, 250);
-  }
-  if ( myData.z < 1000) {
-        digitalWrite(STBDIODIR, LOW) ;
-        digitalWrite(PORTIODIR, LOW) ;
-        ledcWrite(STBDCHANNEL, 250);
-        ledcWrite(PORTCHANNEL, 250);
-  }
-  if ( myData.z > 2500) {
-        digitalWrite(STBDIODIR, HIGH) ;
-        digitalWrite(PORTIODIR, HIGH) ;
-        ledcWrite(STBDCHANNEL, 250);
-        ledcWrite(PORTCHANNEL, 250);
-  }
-
-   else {
-      ledcWrite(STBDCHANNEL, 0);
-      ledcWrite(PORTCHANNEL, 0);
-
-   }
-*/       

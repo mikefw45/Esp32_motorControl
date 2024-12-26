@@ -26,7 +26,7 @@ void twiFunctions::DataReceived(int byteCount) {
         instance->rx_data[index++] = Wire.read(); 
     }
 
-    std::cerr << "Data received successfully. rx_data: " ;
+   // std::cerr << "Data received successfully. rx_data: " ;
     for (int i = 0; i < expectedByteCount; i++) {
         std::cerr << std::hex << static_cast<int>(instance->rx_data[i]) << " ";
     }
